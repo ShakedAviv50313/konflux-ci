@@ -25,7 +25,7 @@ spec:
           name: gosmee
           args:
             - "client"
-            - <smee-channel>
+            - "https://smee.io/ra6VUWGpWoAAC3L"
             - "http://pipelines-as-code-controller.pipelines-as-code:8080"
           securityContext:
             readOnlyRootFilesystem: true

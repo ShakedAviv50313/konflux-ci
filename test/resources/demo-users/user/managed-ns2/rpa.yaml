@@ -16,7 +16,7 @@ spec:
     mapping:
       components:
         - name: test-component
-          repository: <repository url>
+          repository: quay.io/rh_ee_saviv/konflux-image
   origin: user-ns2
   pipeline:
     pipelineRef:

@@ -23,7 +23,7 @@ spec:
   source:
     git:
       revision: main
-      url: https://github.com/konflux-ci/testrepo.git
+      url: git@github.com:ShakedAviv50313/konflux-testrepo.git
       dockerfileUrl: Dockerfile
       context: ./
 ---
@@ -33,4 +33,4 @@ metadata:
   name: project-repository
   namespace: user-ns2
 spec:
-  url: "https://github.com/konflux-ci/testrepo"
+  url: "https://github.com/ShakedAviv50313/konflux-testrepo"

@@ -2,12 +2,12 @@
 apiVersion: appstudio.redhat.com/v1alpha1
 kind: ReleasePlanAdmission
 metadata:
-  name: test-component
+  name: new-app
   labels:
     release.appstudio.openshift.io/auto-release: 'true'
 spec:
   applications:
-    - test-component
+    - new-app
   data:
     images:
       addGitShaTag: true
@@ -15,8 +15,8 @@ spec:
         - latest
     mapping:
       components:
-        - name: test-component
-          repository: <repository url>
+        - name: konflux-testrepo
+          repository: quay.io/saviv-konflux-test/user-ns2/new-app/konflux-testrepo
   origin: user-ns2
   pipeline:
     pipelineRef:

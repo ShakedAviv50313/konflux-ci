@@ -6,7 +6,7 @@ metadata:
     release.appstudio.openshift.io/auto-release: 'true'
     release.appstudio.openshift.io/standing-attribution: 'true'
   namespace: user-ns2
-  name: test-component
+  name: new-app
 spec:
-  application: test-component
+  application: new-app
   target: managed-ns2

@@ -72,6 +72,8 @@ your local machine.
 
 ## Machine Minimum Requirements
 
+The deployment is currently only supported on **x86_64 Linux** platforms.
+
 The deployment requires the following **free** resources:
 
 **CPU**: 4 cores\
@@ -90,6 +92,22 @@ additional resources.
 * `openssl`
 
 ## Bootstrapping the Cluster
+:gear: Clone this repository:
+
+ ```bash
+git clone https://github.com/konflux-ci/konflux-ci.git
+cd konflux-ci
+```
+
+**Note:** It is recommended that you increase the `inotify` resource limits in order to
+avoid issues related to
+[too many open files](https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files). To increase the limits temporarily, run the
+following commands:
+
+```bash
+sudo sysctl fs.inotify.max_user_watches=524288
+sudo sysctl fs.inotify.max_user_instances=512
+```
 
 From the root of this repository, run the setup scripts:
 
@@ -97,15 +115,6 @@ From the root of this repository, run the setup scripts:
 
 ```bash
 kind create cluster --name konflux --config kind-config.yaml
-```
-
-**Note:** If the cluster or any deployments fail to start because of
-[too many open files](https://kind.sigs.k8s.io/docs/user/known-issues/#pod-errors-due-to-too-many-open-files)
-run the following commands:
-
-```bash
-sudo sysctl fs.inotify.max_user_watches=524288
-sudo sysctl fs.inotify.max_user_instances=512
 ```
 
 **Note:** When using Podman, it is recommended that you increase the PID limit on the
@@ -148,7 +157,15 @@ and modify the `system-reserved` line under `kubeletExtraArgs`:
 ./deploy-test-resources.sh
 ```
 
-5. The UI will be available at https://localhost:9443. You can login using a test user.
+5. :gear: If Konflux was installed on a cluster hosted in a remote machine, SSH port-forwarding can 
+be used to access. Open an additional terminal and run the following command
+(make sure to add the details of your remote machine and user):
+
+```bash
+ssh -L 9443:localhost:9443 $USER@$VM_IP
+```
+
+6. The UI will be available at https://localhost:9443. You can login using a test user.
 
 `username:` `user2`
 
@@ -233,14 +250,12 @@ The former is enabled by creating the
 [GitHub Application Secrets](./docs/github-secrets.md) **on all 3 namespaces** and
 installing your newly-created GitHub app on your repository, as explained above.
 
-To achieve the latter follow the steps below:
-1. :gear: Configure a push secret that will allow the build pipeline to push images to
-   Quay.io for namespace `user-ns2`. For that, follow the
-   [procedure for configuring the push secret](./docs/quay.md#configuring-a-push-secret-for-the-build-pipeline).
-2. :gear: Create an organization and an application in Quay.io that will allow Konflux to
-   create repositories for your applications. To do that,
-   [Follow the procedure](./docs/quay.md#automatically-provision-quay-repositories-for-container-images)
-   to configure a Quay.io application and deploy `image-controller`.
+To achieve the latter follow the step below:
+
+:gear: Create an organization and an application in Quay.io that will allow Konflux to
+create repositories for your applications. To do that,
+[Follow the procedure](./docs/quay.md#automatically-provision-quay-repositories-for-container-images)
+to configure a Quay.io application and deploy `image-controller`.
 
 #### Create Application and Component via the Konflux UI
 
@@ -248,16 +263,22 @@ To achieve the latter follow the steps below:
 
 1. Login to [Konflux](https://localhost:9443) as `user2` (password: `password`).
 2. Click `Create application`
-3. Provide a name to the application and click "Add a component"
-4. Under `Git repository url`, copy the **https** link to your fork. This should
+3. Verify the workspace is set to `user-ns2` (notice the `ws` breadcrumb trail just
+   above `Create an application` and click the `...` to switch workspaces as needed).
+4. Provide a name to the application and click "Add a component"
+5. Under `Git repository url`, copy the **https** link to your fork. This should
    be something similar to `https://github.com/<your-name>/testrepo.git`.
-5. Leave `Docker file` blank. The default value of `Dockerfile` will be used.
-6. Under the Pipeline drop-down list, select `docker-build`.
-7. Click `Create application`.
+6. Leave `Docker file` blank. The default value of `Dockerfile` will be used.
+7. Under the Pipeline drop-down list, select `docker-build`.
+8. Click `Create application`.
+
+**NOTE:** If you encounter `404 Not Found` error, refer to the
+[troubleshooting guide](./docs/troubleshooting.md#unable-to-create-application-with-component-using-the-konflux-ui).
 
 The UI should now display the Lifecycle diagram for your application. In the Components
 tab you should be able to see your component listed and you'll be prompted to merge the
-automatically-created Pull Request (don't do that just yet).
+automatically-created Pull Request (don't do that just yet. we'll have it merged in
+section [Trigger the Release](#trigger-the-release)).
 
 **NOTE:** if you have NOT completed the Quay.io setup steps in the previous section,
 Konflux will be UNABLE to send a PR to your repository. Konflux will display "Sending
@@ -341,7 +362,8 @@ git push origin HEAD
    branch and not against the repository from which it was forked** (i.e.
    `base repository` should reside under your user name).
 
-   Finally, click "Create pull request".
+   Finally, click "Create pull request" (we'll have it merged in section
+   [Trigger the Release](#trigger-the-release)).
 
 ### Observe the Behavior
 
@@ -503,10 +525,10 @@ E.g. [Docker Hub](https://hub.docker.com/), [Quay.io](https://quay.io/repository
 You can add integration tests either via the Konflux UI, or by applying the equivalent
 Kubernetes resource.
 
-**NOTE:** If you have imported your component via the UI, a similiar Integration Test is
+**NOTE:** If you have imported your component via the UI, a similar Integration Test is
 pre-installed.
 
-In our case, The resource is defined in
+In our case, the resource is defined in
 `test/resources/demo-users/user/ns2/ec-integration-test.yaml`.
 
 :gear: Apply the resource manifest:
@@ -592,7 +614,7 @@ Alternatively, you can create it using `kubectl`. The manifest is stored in
 2. :gear: Deploy the manifest:
 
 ```bash
-kubectl create -f .test/resources/demo-users/user/ns2/integration-test-hello.yaml
+kubectl create -f ./test/resources/demo-users/user/ns2/integration-test-hello.yaml
 ```
 
 :gear: Post a `/retest` comment on your GitHub PR, and once the `pull-request`
@@ -652,7 +674,7 @@ together with the snapshot for creating a new `Release` resource.
 
 The `ReleasePlan` resource includes a reference to the application that the development
 team wants to release, along with the namespace where the application is supposed to be
-released.
+released (in this case, `managed-ns2`).
 
 The `ReleasePlanAdmission` resource defines how the application should be released, and
 it is typically maintained, not by the development team, but by the managed environment
@@ -719,10 +741,13 @@ for your ReleasePlan should be **"Matched"**.
 #### Create a Registry Secret for the Managed Namespace
 
 In order for the release service to be able to push images to the registry, a secret is
-needed on the managed namespace (`managed-ns2`). This is the same secret as was
-previously created on the development namespace (`user-ns2`).
+needed on the managed namespace (`managed-ns2`).
 
-:gear: To do that, follow the instructions for
+The secret needs to be created on this namespace regardless of whether you used the
+UI for onboarding or not, but if you weren't, then this secret is identical to the one
+that was previously created on the development namespace (`user-ns2`).
+
+:gear: To create it, follow the instructions for
 [creating a push secret for the release pipeline](./docs/quay.md#configuring-a-push-secret-for-the-release-pipeline)
 for namespace `managed-ns2`.
 

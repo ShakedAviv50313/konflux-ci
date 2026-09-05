@@ -5,6 +5,9 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: build-service
     control-plane: controller-manager
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
   name: build-service
 ---
 apiVersion: v1
@@ -132,21 +135,34 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - ""
-  resources:
+  - configmaps
+  - secrets
   - serviceaccounts
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
   - update
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
 - apiGroups:
   - apiextensions.k8s.io
   resources:
@@ -169,31 +185,22 @@ rules:
   - components/status
   - imagerepositories
   - imagerepositories/status
+  - nudgeconfigs
   - releaseplanadmissions
   verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - ""
+  - konflux-ci.dev
   resources:
-  - configmaps
-  - secrets
+  - components
+  - components/status
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - pipelinesascode.tekton.dev
@@ -209,9 +216,13 @@ rules:
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io
+  resourceNames:
+  - appstudio-pipelines-runner
+  - konflux-build-pipelines-runner
   resources:
   - clusterroles
   verbs:
+  - bind
   - get
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -344,15 +355,15 @@ data:
     default-pipeline-name: docker-build-oci-ta
     pipelines:
     - name: fbc-builder
-      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-fbc-builder@sha256:050c78c5d130895fc468df9ae265da280dddcc013e30d24d07dd65ecafed43d6
+      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-fbc-builder@sha256:1989c866dcd03078f197efbd2e4f3094a505e62196b08e366f4514e44d3409d5
     - name: docker-build
-      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build@sha256:384a8672e0b3475cfa5f88b911245643197f4f2302ecae88f24aaa5ef46847ea
+      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build@sha256:4d217083b06984e2dfd13df722f210ddd9ce1d4875e78704cf547268dbe4b60b
     - name: docker-build-oci-ta
-      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta@sha256:095ed525c8e8a68fcd3cb55750dea9e56df2954cc4725464ece75331293d499c
+      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta@sha256:e8b04c12ee3f606316c90567f3d4fd37c4bae143a063b5b071de6c0d2db07717
     - name: tekton-bundle-builder
-      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-tekton-bundle-builder@sha256:4effe3c63dd70df7d969e93281a4a37643ba2235dc88711794e412930c4cbb39
+      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-tekton-bundle-builder@sha256:4b640be905a5bc6f7f2536fed916a5efd82b6821e7edc9b962f035d9e714e38e
     - name: tekton-bundle-builder-oci-ta
-      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-tekton-bundle-builder-oci-ta@sha256:183d6a86ea39f7d0b5915b349764971449e50d314d41b8ace868b6222bc3e918
+      bundle: quay.io/konflux-ci/tekton-catalog/pipeline-tekton-bundle-builder-oci-ta@sha256:074307d13e43c91127793accab43cc1915df77c019b4350574b4f23f47461a47
 kind: ConfigMap
 metadata:
   name: build-pipeline-config
@@ -411,7 +422,7 @@ spec:
         env:
         - name: PAC_WEBHOOK_URL
           value: http://pipelines-as-code-controller.pipelines-as-code.svc.cluster.local:8180
-        image: quay.io/konflux-ci/build-service:1aae2f2f98aa9905ed01d45d4d7249d74943a1c5
+        image: quay.io/konflux-ci/build-service:0be399c54c4e550e4b5aafa0aef7cb4db6f658db
         livenessProbe:
           httpGet:
             path: /healthz
